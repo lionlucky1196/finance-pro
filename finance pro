@@ -1,0 +1,2543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#6366f1" />
+<title>FinancePro — Premium Ledger & Finance Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+/* ============ RESET & BASE ============ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);color:var(--text);
+  font-size:15px;line-height:1.5;
+  overflow-x:hidden;transition:background .3s,color .3s;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px;color:inherit}
+h1,h2,h3{font-weight:700;letter-spacing:-.02em}
+.muted{color:var(--text-muted)}
+
+/* ============ THEME VARS ============ */
+:root{
+  --primary:#6366f1;--primary-dark:#4f46e5;--primary-soft:rgba(99,102,241,.12);
+  --income:#10b981;--expense:#ef4444;--warn:#f59e0b;--info:#3b82f6;
+  --bg:#f4f6fb;--surface:#ffffff;--surface-2:#f8fafc;
+  --text:#0f172a;--text-muted:#64748b;--border:#e2e8f0;
+  --shadow:0 4px 20px rgba(15,23,42,.06);
+  --shadow-lg:0 20px 60px rgba(15,23,42,.15);
+  --radius:16px;--radius-sm:10px;
+}
+[data-theme="dark"]{
+  --bg:#0b1020;--surface:#131a2e;--surface-2:#1a2340;
+  --text:#f1f5f9;--text-muted:#94a3b8;--border:#253056;
+  --shadow:0 4px 20px rgba(0,0,0,.4);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.6);
+}
+[data-color="emerald"]{--primary:#10b981;--primary-dark:#059669;--primary-soft:rgba(16,185,129,.12)}
+[data-color="rose"]{--primary:#f43f5e;--primary-dark:#e11d48;--primary-soft:rgba(244,63,94,.12)}
+[data-color="amber"]{--primary:#f59e0b;--primary-dark:#d97706;--primary-soft:rgba(245,158,11,.12)}
+[data-color="sky"]{--primary:#0ea5e9;--primary-dark:#0284c7;--primary-soft:rgba(14,165,233,.12)}
+[data-color="violet"]{--primary:#8b5cf6;--primary-dark:#7c3aed;--primary-soft:rgba(139,92,246,.12)}
+
+/* ============ SPLASH & LOCK ============ */
+.splash{
+  position:fixed;inset:0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#fff;z-index:9999;transition:opacity .5s;
+}
+.splash-logo{font-size:80px;animation:bounce 1s ease infinite alternate}
+.splash h1{font-size:32px;margin-top:12px}
+.splash p{opacity:.8;margin-top:4px}
+.splash.hide{opacity:0;pointer-events:none}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+
+.lock-screen{
+  position:fixed;inset:0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  display:flex;align-items:center;justify-content:center;z-index:9998;padding:20px;
+}
+.lock-screen.hidden{display:none}
+.lock-card{
+  background:rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.2);border-radius:24px;padding:32px 24px;
+  width:100%;max-width:360px;color:#fff;text-align:center;
+}
+.lock-logo{font-size:56px;margin-bottom:8px}
+.lock-card h2{font-size:24px;margin-bottom:4px}
+.lock-card p{opacity:.8;margin-bottom:20px;font-size:14px}
+.pin-display{display:flex;justify-content:center;gap:14px;margin-bottom:28px}
+.pin-display span{
+  width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
+  transition:all .2s;
+}
+.pin-display span.filled{background:#fff;border-color:#fff;transform:scale(1.1)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pin-keypad button{
+  height:60px;border-radius:16px;background:rgba(255,255,255,.12);color:#fff;
+  font-size:22px;font-weight:600;transition:all .15s;
+}
+.pin-keypad button:active{transform:scale(.95);background:rgba(255,255,255,.25)}
+.pin-keypad .key-sub{font-size:16px}
+.btn-link{background:none;color:rgba(255,255,255,.9);margin-top:16px;padding:8px;font-size:14px;text-decoration:underline}
+.btn-link.hidden{display:none}
+
+/* ============ APP LAYOUT ============ */
+.app.hidden{display:none}
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(10px);
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.logo-icon{font-size:32px}
+.app-title{font-weight:700;font-size:17px}
+.app-sub{font-size:12px;color:var(--text-muted)}
+.topbar-right{display:flex;gap:6px}
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;color:var(--text);
+}
+.icon-btn:hover,.icon-btn:active{background:var(--primary-soft)}
+
+.search-bar{
+  position:sticky;top:68px;z-index:49;background:var(--surface);
+  padding:10px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);
+}
+.search-bar.hidden{display:none}
+.search-bar input{
+  flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;outline:none;color:var(--text);
+}
+.search-bar input:focus{border-color:var(--primary)}
+
+.main{padding:16px 16px 120px;max-width:1200px;margin:0 auto}
+.page{display:none;animation:fadeIn .3s}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============ DASHBOARD ============ */
+.greeting{margin-bottom:18px}
+.greeting h1{font-size:26px}
+.greeting p{color:var(--text-muted);font-size:14px;margin-top:2px}
+
+.stat-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;
+}
+@media(min-width:768px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+.stat-card{
+  background:var(--surface);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+  border:1px solid var(--border);transition:transform .2s;
+}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--primary);
+}
+.stat-balance::before{background:linear-gradient(90deg,var(--primary),var(--info))}
+.stat-income::before{background:var(--income)}
+.stat-expense::before{background:var(--expense)}
+.stat-today::before{background:var(--warn)}
+.stat-month-in::before{background:var(--income)}
+.stat-month-out::before{background:var(--expense)}
+.stat-profit::before{background:linear-gradient(90deg,var(--income),var(--primary))}
+.stat-loan::before{background:var(--warn)}
+.stat-icon{
+  width:40px;height:40px;border-radius:12px;background:var(--primary-soft);
+  display:flex;align-items:center;justify-content:center;color:var(--primary);
+  margin-bottom:10px;
+}
+.stat-income .stat-icon{background:rgba(16,185,129,.12);color:var(--income)}
+.stat-expense .stat-icon{background:rgba(239,68,68,.12);color:var(--expense)}
+.stat-today .stat-icon{background:rgba(245,158,11,.12);color:var(--warn)}
+.stat-month-in .stat-icon{background:rgba(16,185,129,.12);color:var(--income)}
+.stat-month-out .stat-icon{background:rgba(239,68,68,.12);color:var(--expense)}
+.stat-loan .stat-icon{background:rgba(245,158,11,.12);color:var(--warn)}
+.stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.stat-value{font-size:20px;font-weight:700;margin-top:4px;word-break:break-all}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+.quick-actions{margin-bottom:20px}
+.quick-actions h3{margin-bottom:10px;font-size:16px}
+.qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.qa-btn{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:12px;font-weight:500;transition:all .2s;
+}
+.qa-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.qa-btn .material-icons-round{font-size:22px}
+.qa-btn.income{color:var(--income)}
+.qa-btn.expense{color:var(--expense)}
+.qa-btn.transfer{color:var(--info)}
+.qa-btn.loan{color:var(--warn)}
+
+.card{
+  background:var(--surface);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:16px;
+}
+.card h3{font-size:16px;margin-bottom:12px}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-head h3{margin:0}
+.two-col{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:768px){.two-col{grid-template-columns:1fr 1fr}}
+.chart-wrap{position:relative;height:240px}
+
+/* ============ BUTTONS ============ */
+.btn{
+  padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;
+  display:inline-flex;align-items:center;gap:6px;transition:all .2s;
+}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--primary-soft)}
+.btn-danger{background:var(--expense);color:#fff}
+.btn-danger:hover{filter:brightness(.9)}
+.btn-block{width:100%;justify-content:center}
+.btn-link-dark{color:var(--primary);padding:4px 8px;font-size:13px;font-weight:500}
+
+/* ============ PAGE HEAD ============ */
+.page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.page-head h2{font-size:22px}
+.page-actions{display:flex;gap:8px}
+
+/* ============ TX LIST ============ */
+.tx-list{display:flex;flex-direction:column;gap:8px}
+.tx-list.full{min-height:300px}
+.tx-item{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;
+  transition:all .2s;position:relative;
+}
+.tx-item:hover{transform:translateX(2px);box-shadow:var(--shadow)}
+.tx-icon{
+  width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:20px;
+}
+.tx-icon.income{background:rgba(16,185,129,.12);color:var(--income)}
+.tx-icon.expense{background:rgba(239,68,68,.12);color:var(--expense)}
+.tx-icon.transfer{background:rgba(59,130,246,.12);color:var(--info)}
+.tx-icon.loan{background:rgba(245,158,11,.12);color:var(--warn)}
+.tx-body{flex:1;min-width:0}
+.tx-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-sub{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.tx-amount{font-weight:700;font-size:15px;text-align:right;white-space:nowrap}
+.tx-amount.income{color:var(--income)}
+.tx-amount.expense{color:var(--expense)}
+.tx-amount.transfer{color:var(--info)}
+.tx-amount.loan{color:var(--warn)}
+.tx-menu-btn{padding:4px;color:var(--text-muted)}
+
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--text-muted);
+}
+.empty-state .material-icons-round{font-size:64px;opacity:.3;margin-bottom:12px}
+.empty-state h3{color:var(--text);margin-bottom:4px}
+.empty-state.hidden{display:none}
+
+/* ============ FILTERS ============ */
+.filter-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;margin-bottom:16px;
+}
+.filter-panel.hidden{display:none}
+.filter-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:768px){.filter-grid{grid-template-columns:repeat(4,1fr)}}
+.filter-grid label{font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block}
+.filter-grid input,.filter-grid select{
+  width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  background:var(--surface-2);outline:none;color:var(--text);
+}
+.filter-grid input:focus,.filter-grid select:focus{border-color:var(--primary)}
+.filter-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+
+/* ============ PERSON LIST ============ */
+.ledger-search{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.ledger-search input{flex:1;border:none;background:none;outline:none;color:var(--text)}
+.person-list{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:768px){.person-list{grid-template-columns:repeat(2,1fr)}}
+.person-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:14px;cursor:pointer;transition:all .2s;
+}
+.person-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.person-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.person-avatar{
+  width:42px;height:42px;border-radius:50%;background:var(--primary-soft);
+  color:var(--primary);display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:16px;
+}
+.person-name{font-weight:600;font-size:15px}
+.person-phone{font-size:12px;color:var(--text-muted)}
+.person-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.person-stat{text-align:center;padding:6px;background:var(--surface-2);border-radius:8px}
+.person-stat .label{font-size:10px;color:var(--text-muted);text-transform:uppercase}
+.person-stat .value{font-size:13px;font-weight:700;margin-top:2px}
+.person-stat.given .value{color:var(--expense)}
+.person-stat.received .value{color:var(--income)}
+.person-stat.balance .value{color:var(--primary)}
+.fav-star{color:var(--warn);font-size:18px}
+
+/* ============ REPORTS ============ */
+.report-tabs{
+  display:flex;gap:6px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;
+  scrollbar-width:none;
+}
+.report-tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:8px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);
+  font-size:13px;font-weight:500;white-space:nowrap;transition:all .2s;
+}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.report-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;
+}
+.summary-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:12px;text-align:center;
+}
+.summary-box .label{font-size:11px;color:var(--text-muted);text-transform:uppercase}
+.summary-box .value{font-size:18px;font-weight:700;margin-top:4px}
+.report-table{
+  width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;
+}
+.report-table th,.report-table td{
+  padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;
+}
+.report-table th{background:var(--surface-2);font-weight:600;font-size:12px;color:var(--text-muted);text-transform:uppercase}
+.report-table tr:last-child td{border-bottom:none}
+
+/* ============ TOOLS ============ */
+.tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:768px){.tool-grid{grid-template-columns:repeat(6,1fr)}}
+.tool-btn{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-size:11px;font-weight:500;transition:all .2s;color:var(--text);
+}
+.tool-btn:hover{background:var(--primary-soft);border-color:var(--primary)}
+.tool-btn .material-icons-round{font-size:24px;color:var(--primary)}
+
+/* ============ SETTINGS ============ */
+.setting-row{
+  display:flex;justify-content:space-between;align-items:center;padding:12px 0;
+  border-bottom:1px solid var(--border);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-row select,.setting-row input{
+  padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+  background:var(--surface-2);outline:none;
+}
+
+/* ============ BOTTOM NAV ============ */
+.bottom-nav{
+  position:fixed;bottom:14px;left:14px;right:14px;max-width:480px;margin:0 auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:8px;display:flex;justify-content:space-around;box-shadow:var(--shadow-lg);
+  z-index:40;
+}
+.nav-btn{
+  flex:1;padding:10px 4px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:var(--text-muted);font-size:10px;font-weight:500;transition:all .2s;
+}
+.nav-btn.active{background:var(--primary-soft);color:var(--primary)}
+.nav-btn .material-icons-round{font-size:22px}
+
+.fab{
+  position:fixed;bottom:92px;right:20px;width:58px;height:58px;border-radius:50%;
+  background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(99,102,241,.5);z-index:41;transition:all .2s;
+}
+.fab:hover{transform:scale(1.08) rotate(90deg)}
+.fab .material-icons-round{font-size:28px}
+
+/* ============ MODAL ============ */
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;z-index:100;
+  animation:fadeIn .2s;
+}
+@media(min-width:768px){.modal{align-items:center}}
+.modal-content{
+  background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;
+  max-height:92vh;overflow-y:auto;animation:slideUp .3s;
+}
+@media(min-width:768px){.modal-content{border-radius:20px;max-height:85vh}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{
+  position:sticky;top:0;background:var(--surface);padding:16px 20px;
+  display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);
+  z-index:2;
+}
+.modal-head h3{font-size:18px}
+.modal-body{padding:20px}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.modal-foot .btn{flex:1}
+
+.form-group{margin-bottom:14px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;display:block}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface-2);outline:none;color:var(--text);transition:border .2s;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+.type-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.type-tab{
+  padding:8px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);
+  font-size:12px;font-weight:500;transition:all .2s;
+}
+.type-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.tag-chip{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;
+  background:var(--primary-soft);color:var(--primary);font-size:12px;margin:2px 4px 2px 0;
+}
+.tag-chip button{font-size:14px;color:var(--primary)}
+
+/* ============ TOAST ============ */
+.toast-root{
+  position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+  z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  background:var(--text);color:var(--surface);padding:12px 20px;border-radius:12px;
+  font-size:14px;box-shadow:var(--shadow-lg);animation:toastIn .3s;
+  display:flex;align-items:center;gap:10px;max-width:340px;
+}
+.toast.success{background:var(--income)}
+.toast.error{background:var(--expense)}
+.toast.info{background:var(--info)}
+.toast button{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:6px;font-size:12px;color:#fff}
+@keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ============ UTILS ============ */
+.hidden{display:none!important}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chip{padding:4px 10px;background:var(--surface-2);border-radius:12px;font-size:11px;border:1px solid var(--border)}
+
+/* ============ CALCULATOR ============ */
+.calc-display{
+  background:var(--surface-2);border-radius:12px;padding:20px;text-align:right;
+  font-size:32px;font-weight:700;margin-bottom:12px;min-height:80px;
+  display:flex;align-items:center;justify-content:flex-end;word-break:break-all;
+}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.calc-btn{
+  padding:16px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);
+  font-size:18px;font-weight:500;
+}
+.calc-btn.op{background:var(--primary-soft);color:var(--primary)}
+.calc-btn.eq{background:var(--primary);color:#fff}
+.calc-btn:active{transform:scale(.95)}
+
+/* ============ PRINT ============ */
+@media print{
+  .topbar,.bottom-nav,.fab,.modal,.toast-root,.page-head .page-actions{display:none!important}
+  .main{padding:0}
+  body{background:#fff;color:#000}
+}
+</style>
+</head>
+<body>
+
+<!-- =============== LOCK SCREEN =============== -->
+<div id="lockScreen" class="lock-screen hidden">
+  <div class="lock-card">
+    <div class="lock-logo">🔒</div>
+    <h2>FinancePro</h2>
+    <p id="lockMessage">Enter your PIN to unlock</p>
+    <div class="pin-display">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="pin-keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="clear" class="key-sub">C</button>
+      <button data-k="0">0</button>
+      <button data-k="back" class="key-sub"><span class="material-icons-round">backspace</span></button>
+    </div>
+    <button id="setupPinBtn" class="btn-link hidden">Set up new PIN</button>
+    <button id="skipLockBtn" class="btn-link">Skip (no lock set)</button>
+  </div>
+</div>
+
+<!-- =============== SPLASH =============== -->
+<div id="splash" class="splash">
+  <div class="splash-logo">💰</div>
+  <h1>FinancePro</h1>
+  <p>Premium Ledger System</p>
+</div>
+
+<!-- =============== APP =============== -->
+<div id="app" class="app hidden">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="logo-icon">💰</span>
+      <div>
+        <div class="app-title">FinancePro</div>
+        <div class="app-sub" id="dateLabel"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="searchBtn" title="Search"><span class="material-icons-round">search</span></button>
+      <button class="icon-btn" id="themeToggle" title="Toggle theme"><span class="material-icons-round">dark_mode</span></button>
+      <button class="icon-btn" id="menuBtn" title="Menu"><span class="material-icons-round">more_vert</span></button>
+    </div>
+  </header>
+
+  <!-- Search bar -->
+  <div id="searchBar" class="search-bar hidden">
+    <span class="material-icons-round">search</span>
+    <input type="text" id="globalSearch" placeholder="Search transactions, persons, categories..." />
+    <button class="icon-btn" id="closeSearch"><span class="material-icons-round">close</span></button>
+  </div>
+
+  <!-- Pages -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="greeting">
+        <div>
+          <h1 id="greetingText">Good day</h1>
+          <p>Here's your financial overview</p>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card stat-balance">
+          <div class="stat-icon"><span class="material-icons-round">account_balance_wallet</span></div>
+          <div class="stat-label">Total Balance</div>
+          <div class="stat-value" id="statBalance">0</div>
+          <div class="stat-sub" id="statBalanceSub">All accounts</div>
+        </div>
+        <div class="stat-card stat-income">
+          <div class="stat-icon"><span class="material-icons-round">arrow_downward</span></div>
+          <div class="stat-label">Total Cash In</div>
+          <div class="stat-value" id="statIncome">0</div>
+          <div class="stat-sub" id="statIncomeSub">All time</div>
+        </div>
+        <div class="stat-card stat-expense">
+          <div class="stat-icon"><span class="material-icons-round">arrow_upward</span></div>
+          <div class="stat-label">Total Cash Out</div>
+          <div class="stat-value" id="statExpense">0</div>
+          <div class="stat-sub" id="statExpenseSub">All time</div>
+        </div>
+        <div class="stat-card stat-today">
+          <div class="stat-icon"><span class="material-icons-round">today</span></div>
+          <div class="stat-label">Today</div>
+          <div class="stat-value" id="statToday">0</div>
+          <div class="stat-sub" id="statTodaySub">0 transactions</div>
+        </div>
+        <div class="stat-card stat-month-in">
+          <div class="stat-icon"><span class="material-icons-round">trending_up</span></div>
+          <div class="stat-label">This Month Income</div>
+          <div class="stat-value" id="statMonthIn">0</div>
+        </div>
+        <div class="stat-card stat-month-out">
+          <div class="stat-icon"><span class="material-icons-round">trending_down</span></div>
+          <div class="stat-label">This Month Expense</div>
+          <div class="stat-value" id="statMonthOut">0</div>
+        </div>
+        <div class="stat-card stat-profit">
+          <div class="stat-icon"><span class="material-icons-round">insights</span></div>
+          <div class="stat-label">Net Profit/Loss</div>
+          <div class="stat-value" id="statProfit">0</div>
+        </div>
+        <div class="stat-card stat-loan">
+          <div class="stat-icon"><span class="material-icons-round">handshake</span></div>
+          <div class="stat-label">Outstanding</div>
+          <div class="stat-value" id="statLoan">0</div>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="qa-grid">
+          <button class="qa-btn income" data-type="Income"><span class="material-icons-round">add</span>Income</button>
+          <button class="qa-btn expense" data-type="Expense"><span class="material-icons-round">remove</span>Expense</button>
+          <button class="qa-btn transfer" data-type="Transfer"><span class="material-icons-round">swap_horiz</span>Transfer</button>
+          <button class="qa-btn loan" data-type="Loan Given"><span class="material-icons-round">payments</span>Loan</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Recent Transactions</h3>
+          <button class="btn-link" data-nav="transactions">View all</button>
+        </div>
+        <div id="recentTxList" class="tx-list"></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h3>Income vs Expense</h3>
+          <div class="chart-wrap"><canvas id="chartOverview"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Top Expenses</h3>
+          <div class="chart-wrap"><canvas id="chartTopExp"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Cash Flow (Last 7 days)</h3>
+        <div class="chart-wrap"><canvas id="chartCashflow"></canvas></div>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="page-transactions" class="page">
+      <div class="page-head">
+        <h2>Transactions</h2>
+        <div class="page-actions">
+          <button class="btn btn-ghost" id="filterBtn"><span class="material-icons-round">filter_list</span>Filter</button>
+          <button class="btn btn-primary" id="addTxBtn"><span class="material-icons-round">add</span>Add</button>
+        </div>
+      </div>
+
+      <div id="filterPanel" class="filter-panel hidden">
+        <div class="filter-grid">
+          <div><label>From</label><input type="date" id="fFrom" /></div>
+          <div><label>To</label><input type="date" id="fTo" /></div>
+          <div><label>Type</label>
+            <select id="fType"><option value="">All</option>
+              <option>Income</option><option>Expense</option><option>Transfer</option>
+              <option>Loan Given</option><option>Loan Taken</option><option>Investment</option>
+              <option>Salary</option><option>Business</option><option>Other</option>
+            </select>
+          </div>
+          <div><label>Category</label><select id="fCategory"><option value="">All</option></select></div>
+          <div><label>Person</label><select id="fPerson"><option value="">All</option></select></div>
+          <div><label>Payment</label>
+            <select id="fPayment"><option value="">All</option>
+              <option>Cash</option><option>UPI</option><option>Bank</option>
+              <option>Card</option><option>Cheque</option>
+            </select>
+          </div>
+          <div><label>Min Amount</label><input type="number" id="fMin" /></div>
+          <div><label>Max Amount</label><input type="number" id="fMax" /></div>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-ghost" id="clearFilter">Clear</button>
+          <button class="btn btn-primary" id="applyFilter">Apply</button>
+        </div>
+      </div>
+
+      <div id="txList" class="tx-list full"></div>
+      <div id="txEmpty" class="empty-state hidden">
+        <span class="material-icons-round">receipt_long</span>
+        <h3>No transactions yet</h3>
+        <p>Tap + to add your first transaction</p>
+      </div>
+    </section>
+
+    <!-- LEDGER -->
+    <section id="page-ledger" class="page">
+      <div class="page-head">
+        <h2>Ledger / Persons</h2>
+        <button class="btn btn-primary" id="addPersonBtn"><span class="material-icons-round">person_add</span>Add Person</button>
+      </div>
+      <div class="ledger-search">
+        <span class="material-icons-round">search</span>
+        <input type="text" id="ledgerSearch" placeholder="Search persons..." />
+      </div>
+      <div id="personList" class="person-list"></div>
+      <div id="personEmpty" class="empty-state hidden">
+        <span class="material-icons-round">people</span>
+        <h3>No persons yet</h3>
+        <p>Add customers, suppliers, friends & family</p>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="page-reports" class="page">
+      <div class="page-head"><h2>Reports & Analytics</h2></div>
+      <div class="report-tabs">
+        <button class="tab active" data-rep="daily">Daily</button>
+        <button class="tab" data-rep="weekly">Weekly</button>
+        <button class="tab" data-rep="monthly">Monthly</button>
+        <button class="tab" data-rep="yearly">Yearly</button>
+        <button class="tab" data-rep="category">Category</button>
+        <button class="tab" data-rep="person">Person</button>
+        <button class="tab" data-rep="payment">Payment</button>
+      </div>
+      <div id="reportContent"></div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">
+          <h3>Profit Chart</h3>
+          <button class="btn btn-ghost" id="exportReport"><span class="material-icons-round">download</span>Export</button>
+        </div>
+        <div class="chart-wrap"><canvas id="chartProfit"></canvas></div>
+      </div>
+    </section>
+
+    <!-- MORE -->
+    <section id="page-more" class="page">
+      <div class="page-head"><h2>More</h2></div>
+
+      <div class="card">
+        <h3>Tools</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" id="calcBtn"><span class="material-icons-round">calculate</span>Calculator</button>
+          <button class="tool-btn" id="notesBtn"><span class="material-icons-round">note</span>Daily Notes</button>
+          <button class="tool-btn" id="reminderBtn"><span class="material-icons-round">notifications</span>Reminders</button>
+          <button class="tool-btn" id="recurringBtn"><span class="material-icons-round">repeat</span>Recurring</button>
+          <button class="tool-btn" id="templateBtn"><span class="material-icons-round">snippet_folder</span>Templates</button>
+          <button class="tool-btn" id="categoryBtn"><span class="material-icons-round">category</span>Categories</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Data</h3>
+        <div class="tool-grid">
+          <button class="tool-btn" id="backupBtn"><span class="material-icons-round">cloud_upload</span>Backup</button>
+          <button class="tool-btn" id="restoreBtn"><span class="material-icons-round">cloud_download</span>Restore</button>
+          <button class="tool-btn" id="exportCsvBtn"><span class="material-icons-round">table_view</span>Export CSV</button>
+          <button class="tool-btn" id="exportXlsxBtn"><span class="material-icons-round">grid_on</span>Export Excel</button>
+          <button class="tool-btn" id="exportPdfBtn"><span class="material-icons-round">picture_as_pdf</span>Export PDF</button>
+          <button class="tool-btn" id="printBtn"><span class="material-icons-round">print</span>Print</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Settings</h3>
+        <div class="setting-row"><span>Currency</span>
+          <select id="setCurrency">
+            <option value="₹">₹ INR</option><option value="$">$ USD</option>
+            <option value="€">€ EUR</option><option value="£">£ GBP</option>
+            <option value="¥">¥ JPY</option><option value="A$">A$ AUD</option>
+            <option value="C$">C$ CAD</option><option value="Fr">Fr CHF</option>
+            <option value="Rs">Rs PKR/NPR/LKR</option><option value="৳">৳ BDT</option>
+          </select>
+        </div>
+        <div class="setting-row"><span>Date Format</span>
+          <select id="setDateFormat">
+            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          </select>
+        </div>
+        <div class="setting-row"><span>Theme Color</span>
+          <select id="setThemeColor">
+            <option value="indigo">Indigo</option><option value="emerald">Emerald</option>
+            <option value="rose">Rose</option><option value="amber">Amber</option>
+            <option value="sky">Sky</option><option value="violet">Violet</option>
+          </select>
+        </div>
+        <div class="setting-row"><span>App Lock (PIN)</span>
+          <button class="btn btn-ghost" id="setupLock">Set PIN</button>
+        </div>
+        <div class="setting-row"><span>Auto-lock (minutes)</span>
+          <input type="number" id="setAutoLock" min="0" max="1440" value="5" style="width:80px" />
+        </div>
+        <div class="setting-row"><span>Reset Database</span>
+          <button class="btn btn-danger" id="resetBtn">Reset</button>
+        </div>
+        <div class="setting-row"><span>About</span><span class="muted">v1.0.0</span></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-nav="dashboard"><span class="material-icons-round">dashboard</span><span>Home</span></button>
+    <button class="nav-btn" data-nav="transactions"><span class="material-icons-round">receipt_long</span><span>Txn</span></button>
+    <button class="nav-btn" data-nav="ledger"><span class="material-icons-round">people</span><span>Ledger</span></button>
+    <button class="nav-btn" data-nav="reports"><span class="material-icons-round">analytics</span><span>Reports</span></button>
+    <button class="nav-btn" data-nav="more"><span class="material-icons-round">apps</span><span>More</span></button>
+  </nav>
+
+  <!-- FAB -->
+  <button id="fab" class="fab" title="Add transaction">
+    <span class="material-icons-round">add</span>
+  </button>
+</div>
+
+<!-- =============== MODALS =============== -->
+<div id="modalRoot"></div>
+<div id="toastRoot" class="toast-root"></div>
+
+<!-- =========================================================
+     ALL JAVASCRIPT IN ONE FILE
+     ========================================================= -->
+<script>
+/* =========================================================
+   database.js — IndexedDB wrapper for FinancePro
+   ========================================================= */
+const DB_NAME = 'financepro_db';
+const DB_VERSION = 1;
+const STORES = {
+  transactions: 'transactions', persons: 'persons', categories: 'categories',
+  settings: 'settings', notes: 'notes', reminders: 'reminders',
+  recurring: 'recurring', templates: 'templates'
+};
+
+class Database {
+  constructor() { this.db = null; }
+  open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORES.transactions)) {
+          const txs = db.createObjectStore(STORES.transactions, { keyPath: 'id' });
+          txs.createIndex('date', 'date', { unique: false });
+          txs.createIndex('type', 'type', { unique: false });
+          txs.createIndex('category', 'category', { unique: false });
+          txs.createIndex('personId', 'personId', { unique: false });
+          txs.createIndex('paymentMethod', 'paymentMethod', { unique: false });
+        }
+        [STORES.persons, STORES.categories, STORES.notes,
+         STORES.reminders, STORES.recurring, STORES.templates].forEach(name => {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'id' });
+        });
+        if (!db.objectStoreNames.contains(STORES.settings))
+          db.createObjectStore(STORES.settings, { keyPath: 'key' });
+      };
+      req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  _tx(storeName, mode = 'readonly') {
+    return this.db.transaction(storeName, mode).objectStore(storeName);
+  }
+  put(storeName, item) {
+    return new Promise((resolve, reject) => {
+      const req = this._tx(storeName, 'readwrite').put(item);
+      req.onsuccess = () => resolve(item);
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  get(storeName, key) {
+    return new Promise((resolve, reject) => {
+      const req = this._tx(storeName).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  getAll(storeName) {
+    return new Promise((resolve, reject) => {
+      const req = this._tx(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  delete(storeName, key) {
+    return new Promise((resolve, reject) => {
+      const req = this._tx(storeName, 'readwrite').delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  clear(storeName) {
+    return new Promise((resolve, reject) => {
+      const req = this._tx(storeName, 'readwrite').clear();
+      req.onsuccess = () => resolve();
+      req.onerror   = (e) => reject(e.target.error);
+    });
+  }
+  async backup() {
+    const data = {};
+    for (const key of Object.values(STORES)) data[key] = await this.getAll(key);
+    data.__exportedAt = new Date().toISOString();
+    data.__version = DB_VERSION;
+    return data;
+  }
+  async restore(data) {
+    for (const key of Object.values(STORES)) {
+      if (Array.isArray(data[key])) {
+        await this.clear(key);
+        for (const item of data[key]) await this.put(key, item);
+      }
+    }
+  }
+  async reset() {
+    for (const key of Object.values(STORES)) await this.clear(key);
+  }
+}
+const db = new Database();
+
+/* =========================================================
+   utils.js — Helpers
+   ========================================================= */
+function uid(prefix = '') {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function money(n) {
+  const cur = (window.Settings && Settings.get('currency')) || '₹';
+  const v = Number(n || 0);
+  const formatted = Math.abs(v).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const sign = v < 0 ? '-' : '';
+  return `${sign}${cur}${formatted}`;
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const fmt = (window.Settings && Settings.get('dateFormat')) || 'DD/MM/YYYY';
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = d.getFullYear();
+  if (fmt === 'MM/DD/YYYY') return `${mm}/${dd}/${yy}`;
+  if (fmt === 'YYYY-MM-DD') return `${yy}-${mm}-${dd}`;
+  return `${dd}/${mm}/${yy}`;
+}
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${fmtDate(iso)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nowISO() { return new Date().toISOString(); }
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return 'Good night';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  if (h < 21) return 'Good evening';
+  return 'Good night';
+}
+function txTypeIcon(type) {
+  const map = {
+    'Income': 'arrow_downward', 'Expense': 'arrow_upward',
+    'Transfer': 'swap_horiz', 'Loan Given': 'payments',
+    'Loan Taken': 'request_quote', 'Investment': 'trending_up',
+    'Salary': 'work', 'Business': 'business', 'Other': 'more_horiz'
+  };
+  return map[type] || 'receipt';
+}
+function txTypeClass(type) {
+  if (type === 'Income' || type === 'Salary' || type === 'Loan Taken') return 'income';
+  if (type === 'Expense') return 'expense';
+  if (type === 'Transfer' || type === 'Investment' || type === 'Business') return 'transfer';
+  if (type === 'Loan Given') return 'loan';
+  return 'transfer';
+}
+function txSign(type) {
+  if (['Income','Salary','Loan Taken','Investment Return'].includes(type)) return +1;
+  if (['Expense','Loan Given','Investment'].includes(type)) return -1;
+  return 0;
+}
+function toast(msg, kind = 'info', action = null) {
+  const root = document.getElementById('toastRoot');
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  el.innerHTML = `<span>${msg}</span>`;
+  if (action) {
+    const btn = document.createElement('button');
+    btn.textContent = action.label;
+    btn.onclick = () => { action.onClick(); el.remove(); };
+    el.appendChild(btn);
+  }
+  root.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3500);
+}
+function openModal(title, bodyHtml, footerHtml = '') {
+  closeAllModals();
+  const root = document.getElementById('modalRoot');
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>${title}</h3>
+        <button class="icon-btn" onclick="closeAllModals()"><span class="material-icons-round">close</span></button>
+      </div>
+      <div class="modal-body">${bodyHtml}</div>
+      ${footerHtml ? `<div class="modal-foot">${footerHtml}</div>` : ''}
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) closeAllModals(); });
+  root.appendChild(m);
+  return m;
+}
+function closeAllModals() {
+  document.getElementById('modalRoot').innerHTML = '';
+}
+function confirmDialog(msg, onYes) {
+  openModal('Confirm',
+    `<p style="padding:10px 0">${msg}</p>`,
+    `<button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+     <button class="btn btn-danger" id="confirmYes">Yes</button>`);
+  document.getElementById('confirmYes').onclick = () => { closeAllModals(); onYes(); };
+}
+function debounce(fn, ms = 300) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+async function shareText(title, text) {
+  if (navigator.share) {
+    try { await navigator.share({ title, text }); } catch {}
+  } else {
+    navigator.clipboard?.writeText(text);
+    toast('Copied to clipboard', 'success');
+  }
+}
+function printHtml(html, title = 'FinancePro Report') {
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+    <style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f0f0f0}</style>
+    </head><body><h2>${title}</h2>${html}<p style="margin-top:30px;color:#888;font-size:12px">
+    Generated by FinancePro — ${new Date().toLocaleString()}</p></body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
+}
+function downloadFile(filename, content, mime = 'text/plain') {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/* =========================================================
+   settings.js — User preferences
+   ========================================================= */
+const Settings = {
+  defaults: {
+    currency: '₹', dateFormat: 'DD/MM/YYYY', theme: 'light',
+    themeColor: 'indigo', pinHash: '', autoLock: 5
+  },
+  cache: {},
+  async load() {
+    const all = await db.getAll(STORES.settings);
+    this.cache = {};
+    all.forEach(row => this.cache[row.key] = row.value);
+  },
+  get(key) {
+    if (key in this.cache) return this.cache[key];
+    return this.defaults[key];
+  },
+  async set(key, value) {
+    this.cache[key] = value;
+    await db.put(STORES.settings, { key, value });
+  },
+  applyTheme() {
+    document.documentElement.setAttribute('data-theme', this.get('theme'));
+    document.documentElement.setAttribute('data-color', this.get('themeColor'));
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.querySelector('span').textContent =
+      this.get('theme') === 'dark' ? 'light_mode' : 'dark_mode';
+  },
+  hashPin(pin) {
+    let h = 0;
+    const s = 'fp_salt_' + pin;
+    for (let i = 0; i < s.length; i++) {
+      h = ((h << 5) - h) + s.charCodeAt(i);
+      h |= 0;
+    }
+    return String(h);
+  },
+  async setPin(pin) {
+    if (!pin) { await this.set('pinHash', ''); return; }
+    await this.set('pinHash', this.hashPin(pin));
+  },
+  verifyPin(pin) {
+    const stored = this.get('pinHash');
+    if (!stored) return true;
+    return stored === this.hashPin(pin);
+  },
+  hasLock() { return !!this.get('pinHash'); }
+};
+
+/* =========================================================
+   ledger.js — Person / Ledger management
+   ========================================================= */
+const Ledger = {
+  async savePerson(person) {
+    if (!person.id) person.id = uid('p_');
+    if (!person.createdAt) person.createdAt = nowISO();
+    person.updatedAt = nowISO();
+    await db.put(STORES.persons, person);
+    return person;
+  },
+  async deletePerson(id) { await db.delete(STORES.persons, id); },
+  async getAll() { return await db.getAll(STORES.persons); },
+  async get(id) { return await db.get(STORES.persons, id); },
+  async getStats(personId) {
+    const txs = await db.getAll(STORES.transactions);
+    const rel = txs.filter(t => t.personId === personId);
+    let given = 0, received = 0, lastDate = '';
+    rel.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (['Expense','Loan Given'].includes(t.type)) given += amt;
+      if (['Income','Loan Taken','Salary'].includes(t.type)) received += amt;
+      if (!lastDate || t.date > lastDate) lastDate = t.date;
+    });
+    return { given, received, balance: received - given, txCount: rel.length, lastDate };
+  },
+  async render(search = '') {
+    const list = document.getElementById('personList');
+    const empty = document.getElementById('personEmpty');
+    const all = await this.getAll();
+    const q = search.trim().toLowerCase();
+    const filtered = q
+      ? all.filter(p => (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q))
+      : all;
+    filtered.sort((a,b) => (b.favorite?1:0) - (a.favorite?1:0) || (a.name||'').localeCompare(b.name||''));
+    if (filtered.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    const html = await Promise.all(filtered.map(async p => {
+      const s = await this.getStats(p.id);
+      const initials = (p.name || '?').slice(0,2).toUpperCase();
+      return `
+        <div class="person-card" data-id="${p.id}">
+          <div class="person-head">
+            <div class="person-avatar">${initials}</div>
+            <div style="flex:1">
+              <div class="person-name">
+                ${p.favorite ? '<span class="fav-star material-icons-round" style="vertical-align:middle">star</span>' : ''}
+                ${escapeHtml(p.name)}
+              </div>
+              <div class="person-phone">${escapeHtml(p.phone||'No phone')}</div>
+            </div>
+            <button class="icon-btn" data-act="fav" data-id="${p.id}" title="Favorite">
+              <span class="material-icons-round">${p.favorite?'star':'star_border'}</span>
+            </button>
+            <button class="icon-btn" data-act="edit" data-id="${p.id}">
+              <span class="material-icons-round">edit</span>
+            </button>
+          </div>
+          <div class="person-stats">
+            <div class="person-stat given"><div class="label">Given</div><div class="value">${money(s.given)}</div></div>
+            <div class="person-stat received"><div class="label">Received</div><div class="value">${money(s.received)}</div></div>
+            <div class="person-stat balance"><div class="label">Balance</div><div class="value">${money(s.balance)}</div></div>
+          </div>
+        </div>`;
+    }));
+    list.innerHTML = html.join('');
+    list.querySelectorAll('.person-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-act]')) return;
+        Ledger.openPersonDetail(card.dataset.id);
+      });
+    });
+    list.querySelectorAll('[data-act="fav"]').forEach(b => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const p = await this.get(b.dataset.id);
+        p.favorite = !p.favorite;
+        await this.savePerson(p);
+        this.render(document.getElementById('ledgerSearch').value);
+      });
+    });
+    list.querySelectorAll('[data-act="edit"]').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); Ledger.openPersonForm(b.dataset.id); });
+    });
+  },
+  async openPersonForm(id = null) {
+    const p = id ? await this.get(id) : { name: '', phone: '', notes: '', favorite: false };
+    const body = `
+      <div class="form-group"><label>Name *</label><input id="pf_name" value="${escapeHtml(p.name||'')}" placeholder="Rahul Kumar" /></div>
+      <div class="form-group"><label>Phone</label><input id="pf_phone" value="${escapeHtml(p.phone||'')}" placeholder="+91 9876543210" /></div>
+      <div class="form-group"><label>Type</label>
+        <select id="pf_type">
+          <option ${p.type==='Customer'?'selected':''}>Customer</option>
+          <option ${p.type==='Supplier'?'selected':''}>Supplier</option>
+          <option ${p.type==='Friend'?'selected':''}>Friend</option>
+          <option ${p.type==='Family'?'selected':''}>Family</option>
+          <option ${p.type==='Shop'?'selected':''}>Shop</option>
+          <option ${p.type==='Other'?'selected':''}>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="pf_notes">${escapeHtml(p.notes||'')}</textarea></div>
+    `;
+    const footer = `
+      ${id ? `<button class="btn btn-danger" id="pf_delete">Delete</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <button class="btn btn-primary" id="pf_save">Save</button>
+    `;
+    openModal(id ? 'Edit Person' : 'New Person', body, footer);
+    document.getElementById('pf_save').onclick = async () => {
+      const name = document.getElementById('pf_name').value.trim();
+      if (!name) { toast('Name is required', 'error'); return; }
+      p.name = name;
+      p.phone = document.getElementById('pf_phone').value.trim();
+      p.type = document.getElementById('pf_type').value;
+      p.notes = document.getElementById('pf_notes').value.trim();
+      await this.savePerson(p);
+      toast('Person saved', 'success');
+      closeAllModals();
+      this.render(document.getElementById('ledgerSearch').value);
+    };
+    if (id) {
+      document.getElementById('pf_delete').onclick = () => {
+        confirmDialog('Delete this person? Transactions will remain but unlinked.', async () => {
+          await this.deletePerson(id);
+          toast('Deleted', 'info');
+          closeAllModals();
+          this.render(document.getElementById('ledgerSearch').value);
+        });
+      };
+    }
+  },
+  async openPersonDetail(id) {
+    const p = await this.get(id);
+    const s = await this.getStats(id);
+    const allTxs = await db.getAll(STORES.transactions);
+    const txs = allTxs.filter(t => t.personId === id)
+                      .sort((a,b) => (b.date + b.time).localeCompare(a.date + a.time));
+    const txHtml = txs.length ? txs.map(t => `
+      <div class="tx-item">
+        <div class="tx-icon ${txTypeClass(t.type)}"><span class="material-icons-round">${txTypeIcon(t.type)}</span></div>
+        <div class="tx-body">
+          <div class="tx-title">${escapeHtml(t.category || t.type)}</div>
+          <div class="tx-sub"><span>${fmtDateTime(t.date+'T'+(t.time||'00:00'))}</span>
+            ${t.paymentMethod ? `<span>• ${t.paymentMethod}</span>`:''}</div>
+        </div>
+        <div class="tx-amount ${txTypeClass(t.type)}">
+          ${txSign(t.type) >= 0 ? '+' : '-'}${money(t.amount)}
+        </div>
+      </div>`).join('') : '<p class="muted" style="text-align:center;padding:20px">No transactions with this person</p>';
+    const body = `
+      <div class="report-summary">
+        <div class="summary-box"><div class="label">Given</div><div class="value" style="color:var(--expense)">${money(s.given)}</div></div>
+        <div class="summary-box"><div class="label">Received</div><div class="value" style="color:var(--income)">${money(s.received)}</div></div>
+        <div class="summary-box"><div class="label">Balance</div><div class="value" style="color:var(--primary)">${money(s.balance)}</div></div>
+      </div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px">
+        ${p.phone ? '📞 '+escapeHtml(p.phone)+' • ' : ''}
+        ${p.type ? escapeHtml(p.type)+' • ' : ''}
+        ${s.txCount} transactions ${s.lastDate ? '• Last '+fmtDate(s.lastDate) : ''}
+      </div>
+      ${p.notes ? `<div style="background:var(--surface-2);padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px">${escapeHtml(p.notes)}</div>` : ''}
+      <h3 style="margin-bottom:10px">Transactions</h3>
+      <div class="tx-list">${txHtml}</div>
+    `;
+    const footer = `
+      <button class="btn btn-ghost" onclick="closeAllModals()">Close</button>
+      <button class="btn btn-primary" id="pd_addTx">+ Add Transaction</button>
+    `;
+    openModal(escapeHtml(p.name), body, footer);
+    document.getElementById('pd_addTx').onclick = () => {
+      closeAllModals();
+      App.openTxForm({ personId: id });
+    };
+  }
+};
+
+/* =========================================================
+   charts.js — Chart.js integration
+   ========================================================= */
+const Charts = {
+  instances: {},
+  destroy(id) {
+    if (this.instances[id]) { this.instances[id].destroy(); delete this.instances[id]; }
+  },
+  colors() {
+    const s = getComputedStyle(document.documentElement);
+    return {
+      primary: s.getPropertyValue('--primary').trim() || '#6366f1',
+      income:  s.getPropertyValue('--income').trim()  || '#10b981',
+      expense: s.getPropertyValue('--expense').trim() || '#ef4444',
+      warn:    s.getPropertyValue('--warn').trim()    || '#f59e0b',
+      info:    s.getPropertyValue('--info').trim()    || '#3b82f6',
+      text:    s.getPropertyValue('--text-muted').trim() || '#64748b',
+      grid:    s.getPropertyValue('--border').trim() || '#e2e8f0'
+    };
+  },
+  commonOpts() {
+    const c = this.colors();
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: c.text, font: { family: 'Inter' } } },
+        tooltip: { backgroundColor: 'rgba(0,0,0,.8)', padding: 10, cornerRadius: 8 }
+      },
+      scales: {
+        x: { ticks: { color: c.text }, grid: { color: c.grid, drawBorder:false } },
+        y: { ticks: { color: c.text }, grid: { color: c.grid, drawBorder:false } }
+      }
+    };
+  },
+  async renderOverview(canvasId) {
+    const txs = await db.getAll(STORES.transactions);
+    const c = this.colors();
+    const months = [], incData = [], expData = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.toLocaleString('default', { month: 'short' }));
+      let inc = 0, exp = 0;
+      txs.forEach(t => {
+        const td = new Date(t.date);
+        if (td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth()) {
+          if (txSign(t.type) > 0) inc += Number(t.amount)||0;
+          if (txSign(t.type) < 0) exp += Number(t.amount)||0;
+        }
+      });
+      incData.push(inc); expData.push(exp);
+    }
+    this.destroy(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.instances[canvasId] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          { label: 'Income',  data: incData, backgroundColor: c.income, borderRadius: 6 },
+          { label: 'Expense', data: expData, backgroundColor: c.expense, borderRadius: 6 }
+        ]
+      },
+      options: { ...this.commonOpts(), plugins: { ...this.commonOpts().plugins, legend: { position: 'top', labels: { color: c.text } } } }
+    });
+  },
+  async renderTopExpenses(canvasId) {
+    const txs = await db.getAll(STORES.transactions);
+    const map = {};
+    txs.forEach(t => {
+      if (txSign(t.type) < 0) {
+        const k = t.category || 'Uncategorized';
+        map[k] = (map[k]||0) + Number(t.amount||0);
+      }
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0, 6);
+    const labels = sorted.map(s => s[0]);
+    const data = sorted.map(s => s[1]);
+    const palette = ['#ef4444','#f59e0b','#3b82f6','#8b5cf6','#10b981','#ec4899','#14b8a6'];
+    this.destroy(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.instances[canvasId] = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: palette, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { color: this.colors().text, padding: 12, font:{size:11} } } }
+      }
+    });
+  },
+  async renderCashflow(canvasId) {
+    const txs = await db.getAll(STORES.transactions);
+    const c = this.colors();
+    const labels = [], incD = [], expD = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0,10);
+      labels.push(d.toLocaleDateString('default', { weekday: 'short' }));
+      let inc = 0, exp = 0;
+      txs.forEach(t => {
+        if (t.date === key) {
+          if (txSign(t.type) > 0) inc += Number(t.amount)||0;
+          if (txSign(t.type) < 0) exp += Number(t.amount)||0;
+        }
+      });
+      incD.push(inc); expD.push(exp);
+    }
+    this.destroy(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.instances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Income',  data: incD, borderColor: c.income,  backgroundColor: c.income+'33', fill: true, tension: .35 },
+          { label: 'Expense', data: expD, borderColor: c.expense, backgroundColor: c.expense+'33', fill: true, tension: .35 }
+        ]
+      },
+      options: this.commonOpts()
+    });
+  },
+  async renderProfit(canvasId) {
+    const txs = await db.getAll(STORES.transactions);
+    const c = this.colors();
+    const labels = [], profitD = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
+      let inc = 0, exp = 0;
+      txs.forEach(t => {
+        const td = new Date(t.date);
+        if (td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth()) {
+          if (txSign(t.type) > 0) inc += Number(t.amount)||0;
+          if (txSign(t.type) < 0) exp += Number(t.amount)||0;
+        }
+      });
+      profitD.push(inc - exp);
+    }
+    this.destroy(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.instances[canvasId] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Net Profit',
+          data: profitD,
+          backgroundColor: profitD.map(v => v >= 0 ? c.income : c.expense),
+          borderRadius: 6
+        }]
+      },
+      options: this.commonOpts()
+    });
+  }
+};
+
+/* =========================================================
+   reports.js — Report generators
+   ========================================================= */
+const Reports = {
+  filterByRange(txs, from, to) {
+    return txs.filter(t => t.date >= from && t.date <= to);
+  },
+  summarize(txs) {
+    let inc = 0, exp = 0, count = txs.length;
+    txs.forEach(t => {
+      const a = Number(t.amount)||0;
+      if (txSign(t.type) > 0) inc += a;
+      if (txSign(t.type) < 0) exp += a;
+    });
+    return { income: inc, expense: exp, profit: inc - exp, count };
+  },
+  groupBy(txs, keyFn) {
+    const g = {};
+    txs.forEach(t => { const k = keyFn(t); if (!g[k]) g[k] = []; g[k].push(t); });
+    return g;
+  },
+  async render(type) {
+    const txs = await db.getAll(STORES.transactions);
+    const container = document.getElementById('reportContent');
+    const today = new Date();
+    let title = '', rows = [];
+
+    if (type === 'daily') {
+      const groups = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today); d.setDate(d.getDate()-i);
+        const key = d.toISOString().slice(0,10);
+        groups.push({ label: fmtDate(key), txs: txs.filter(t => t.date === key) });
+      }
+      rows = groups.map(g => { const s = this.summarize(g.txs); return { label: g.label, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; });
+      title = 'Daily Report (Last 14 days)';
+    }
+    else if (type === 'weekly') {
+      const groups = [];
+      for (let w = 0; w < 8; w++) {
+        const end = new Date(today); end.setDate(end.getDate() - w*7);
+        const start = new Date(end); start.setDate(start.getDate() - 6);
+        const sISO = start.toISOString().slice(0,10);
+        const eISO = end.toISOString().slice(0,10);
+        groups.push({ label: `${fmtDate(sISO)} - ${fmtDate(eISO)}`, txs: this.filterByRange(txs, sISO, eISO) });
+      }
+      rows = groups.map(g => { const s = this.summarize(g.txs); return { label: g.label, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; });
+      title = 'Weekly Report (Last 8 weeks)';
+    }
+    else if (type === 'monthly') {
+      const groups = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+        const sISO = d.toISOString().slice(0,10);
+        const eISO = last.toISOString().slice(0,10);
+        groups.push({ label: d.toLocaleString('default', { month: 'long', year: 'numeric' }), txs: this.filterByRange(txs, sISO, eISO) });
+      }
+      rows = groups.map(g => { const s = this.summarize(g.txs); return { label: g.label, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; });
+      title = 'Monthly Report (Last 12 months)';
+    }
+    else if (type === 'yearly') {
+      const years = {};
+      txs.forEach(t => { const y = t.date.slice(0,4); if (!years[y]) years[y] = []; years[y].push(t); });
+      rows = Object.keys(years).sort().reverse().map(y => { const s = this.summarize(years[y]); return { label: y, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; });
+      title = 'Yearly Report';
+    }
+    else if (type === 'category') {
+      const groups = this.groupBy(txs, t => t.category || 'Uncategorized');
+      rows = Object.entries(groups).map(([cat, arr]) => { const s = this.summarize(arr); return { label: cat, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; }).sort((a,b) => (b.income + b.expense) - (a.income + a.expense));
+      title = 'Category Wise Report';
+    }
+    else if (type === 'person') {
+      const persons = await db.getAll(STORES.persons);
+      const pMap = {}; persons.forEach(p => pMap[p.id] = p.name);
+      const groups = this.groupBy(txs, t => t.personId ? (pMap[t.personId] || 'Unknown') : 'No person');
+      rows = Object.entries(groups).map(([name, arr]) => { const s = this.summarize(arr); return { label: name, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; }).sort((a,b) => (b.income + b.expense) - (a.income + a.expense));
+      title = 'Person Wise Report';
+    }
+    else if (type === 'payment') {
+      const groups = this.groupBy(txs, t => t.paymentMethod || 'Not specified');
+      rows = Object.entries(groups).map(([pm, arr]) => { const s = this.summarize(arr); return { label: pm, count: s.count, income: s.income, expense: s.expense, profit: s.profit }; }).sort((a,b) => (b.income + b.expense) - (a.income + a.expense));
+      title = 'Payment Method Report';
+    }
+
+    const totalInc = rows.reduce((a,r)=>a+r.income,0);
+    const totalExp = rows.reduce((a,r)=>a+r.expense,0);
+    const totalCnt = rows.reduce((a,r)=>a+r.count,0);
+
+    container.innerHTML = `
+      <h3 style="margin-bottom:10px">${title}</h3>
+      <div class="report-summary">
+        <div class="summary-box"><div class="label">Transactions</div><div class="value">${totalCnt}</div></div>
+        <div class="summary-box"><div class="label">Income</div><div class="value" style="color:var(--income)">${money(totalInc)}</div></div>
+        <div class="summary-box"><div class="label">Expense</div><div class="value" style="color:var(--expense)">${money(totalExp)}</div></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="report-table">
+          <thead><tr><th>Period / Group</th><th>Txn</th><th>Income</th><th>Expense</th><th>Net</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td><strong>${escapeHtml(r.label)}</strong></td>
+                <td>${r.count}</td>
+                <td style="color:var(--income)">${money(r.income)}</td>
+                <td style="color:var(--expense)">${money(r.expense)}</td>
+                <td style="color:${r.profit>=0?'var(--income)':'var(--expense)'}; font-weight:600">${money(r.profit)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    this._lastRows = rows;
+    this._lastTitle = title;
+  },
+  exportCurrent(format) {
+    const rows = this._lastRows || [];
+    const title = this._lastTitle || 'Report';
+    if (!rows.length) { toast('No data to export', 'error'); return; }
+    if (format === 'csv') {
+      const head = 'Period,Count,Income,Expense,Net\n';
+      const body = rows.map(r => `"${r.label}",${r.count},${r.income},${r.expense},${r.profit}`).join('\n');
+      downloadFile(`${title}.csv`, head + body, 'text/csv');
+    }
+    else if (format === 'json') {
+      downloadFile(`${title}.json`, JSON.stringify({title, rows}, null, 2), 'application/json');
+    }
+    else if (format === 'xlsx') {
+      const ws = XLSX.utils.json_to_sheet(rows.map(r => ({ Period: r.label, Transactions: r.count, Income: r.income, Expense: r.expense, Net: r.profit })));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Report');
+      XLSX.writeFile(wb, `${title}.xlsx`);
+    }
+    else if (format === 'pdf') {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(16); doc.text(title, 14, 18);
+      doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.autoTable({
+        startY: 32,
+        head: [['Period','Txn','Income','Expense','Net']],
+        body: rows.map(r => [r.label, r.count, r.income.toFixed(2), r.expense.toFixed(2), r.profit.toFixed(2)]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [99,102,241] }
+      });
+      doc.save(`${title}.pdf`);
+    }
+    else if (format === 'print') {
+      const table = `
+        <table><thead><tr><th>Period</th><th>Txn</th><th>Income</th><th>Expense</th><th>Net</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td>${escapeHtml(r.label)}</td><td>${r.count}</td><td>${r.income}</td><td>${r.expense}</td><td>${r.profit}</td></tr>`).join('')}</tbody></table>`;
+      printHtml(table, title);
+    }
+    toast('Exported', 'success');
+  }
+};
+
+/* =========================================================
+   script.js — Main application controller
+   ========================================================= */
+const App = {
+  defaultCategories: [
+    { id: 'c_inc_salary',   name: 'Salary',   kind: 'income', builtIn: true },
+    { id: 'c_inc_business', name: 'Business', kind: 'income', builtIn: true },
+    { id: 'c_inc_interest', name: 'Interest', kind: 'income', builtIn: true },
+    { id: 'c_inc_trading',  name: 'Trading',  kind: 'income', builtIn: true },
+    { id: 'c_inc_invest',   name: 'Investment Return', kind: 'income', builtIn: true },
+    { id: 'c_inc_freelance',name: 'Freelancing', kind: 'income', builtIn: true },
+    { id: 'c_inc_rent',     name: 'Rent',     kind: 'income', builtIn: true },
+    { id: 'c_inc_other',    name: 'Other',    kind: 'income', builtIn: true },
+    { id: 'c_exp_food',     name: 'Food',          kind: 'expense', builtIn: true },
+    { id: 'c_exp_travel',   name: 'Travel',        kind: 'expense', builtIn: true },
+    { id: 'c_exp_fuel',     name: 'Fuel',          kind: 'expense', builtIn: true },
+    { id: 'c_exp_shop',     name: 'Shopping',      kind: 'expense', builtIn: true },
+    { id: 'c_exp_bills',    name: 'Bills',         kind: 'expense', builtIn: true },
+    { id: 'c_exp_medical',  name: 'Medical',       kind: 'expense', builtIn: true },
+    { id: 'c_exp_office',   name: 'Office',        kind: 'expense', builtIn: true },
+    { id: 'c_exp_invest',   name: 'Investment',    kind: 'expense', builtIn: true },
+    { id: 'c_exp_tax',      name: 'Tax',           kind: 'expense', builtIn: true },
+    { id: 'c_exp_fun',      name: 'Entertainment', kind: 'expense', builtIn: true },
+    { id: 'c_exp_recharge', name: 'Recharge',      kind: 'expense', builtIn: true },
+    { id: 'c_exp_internet', name: 'Internet',      kind: 'expense', builtIn: true },
+    { id: 'c_exp_elec',     name: 'Electricity',   kind: 'expense', builtIn: true },
+    { id: 'c_exp_rent',     name: 'Rent',          kind: 'expense', builtIn: true },
+    { id: 'c_exp_insurance',name: 'Insurance',     kind: 'expense', builtIn: true },
+    { id: 'c_exp_edu',      name: 'Education',     kind: 'expense', builtIn: true },
+    { id: 'c_exp_other',    name: 'Other',         kind: 'expense', builtIn: true }
+  ],
+
+  async init() {
+    await db.open();
+    await Settings.load();
+    const existing = await db.getAll(STORES.categories);
+    if (existing.length === 0) {
+      for (const c of this.defaultCategories) await db.put(STORES.categories, c);
+    }
+    Settings.applyTheme();
+    this.bindUI();
+    await this.refreshDashboard();
+    await this.renderTransactions();
+    await Ledger.render();
+    this.scheduleAutoLock();
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('hide');
+      if (Settings.hasLock()) this.showLock();
+      else document.getElementById('app').classList.remove('hidden');
+    }, 900);
+  },
+
+  showLock() {
+    document.getElementById('lockScreen').classList.remove('hidden');
+    this._pinBuf = '';
+    this.updatePinDisplay();
+  },
+  updatePinDisplay() {
+    const spans = document.querySelectorAll('.pin-display span');
+    spans.forEach((s,i) => s.classList.toggle('filled', i < this._pinBuf.length));
+  },
+  async handlePinKey(k) {
+    if (k === 'clear') { this._pinBuf = ''; }
+    else if (k === 'back') { this._pinBuf = this._pinBuf.slice(0,-1); }
+    else if (this._pinBuf.length < 4) { this._pinBuf += k; }
+    this.updatePinDisplay();
+    if (this._pinBuf.length === 4) {
+      if (this._setupMode) {
+        await Settings.setPin(this._pinBuf);
+        toast('PIN set successfully', 'success');
+        this._setupMode = false;
+        document.getElementById('lockMessage').textContent = 'Enter your PIN to unlock';
+        this._pinBuf = '';
+        this.updatePinDisplay();
+        return;
+      }
+      if (Settings.verifyPin(this._pinBuf)) {
+        document.getElementById('lockScreen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        this._pinBuf = '';
+      } else {
+        toast('Wrong PIN', 'error');
+        this._pinBuf = '';
+        setTimeout(() => this.updatePinDisplay(), 200);
+      }
+    }
+  },
+  scheduleAutoLock() {
+    const mins = Number(Settings.get('autoLock')) || 0;
+    if (!mins || !Settings.hasLock()) return;
+    let timer;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        document.getElementById('app').classList.add('hidden');
+        this.showLock();
+      }, mins * 60 * 1000);
+    };
+    ['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, reset));
+    reset();
+  },
+
+  bindUI() {
+    document.getElementById('dateLabel').textContent =
+      new Date().toLocaleDateString('default', { weekday:'long', day:'numeric', month:'short' });
+    document.getElementById('greetingText').textContent = greeting();
+
+    document.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => this.navigate(btn.dataset.nav));
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', async () => {
+      const cur = Settings.get('theme');
+      await Settings.set('theme', cur === 'dark' ? 'light' : 'dark');
+      Settings.applyTheme();
+      Charts.renderOverview('chartOverview');
+      Charts.renderTopExpenses('chartTopExp');
+      Charts.renderCashflow('chartCashflow');
+      Charts.renderProfit('chartProfit');
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      document.getElementById('searchBar').classList.remove('hidden');
+      document.getElementById('globalSearch').focus();
+    });
+    document.getElementById('closeSearch').addEventListener('click', () => {
+      document.getElementById('searchBar').classList.add('hidden');
+      document.getElementById('globalSearch').value = '';
+      this.renderTransactions();
+    });
+    document.getElementById('globalSearch').addEventListener('input',
+      debounce(e => this.renderTransactions(e.target.value), 250));
+
+    document.getElementById('menuBtn').addEventListener('click', () => this.navigate('more'));
+    document.getElementById('fab').addEventListener('click', () => this.openTxForm());
+
+    document.querySelectorAll('.qa-btn').forEach(b => {
+      b.addEventListener('click', () => this.openTxForm({ type: b.dataset.type }));
+    });
+
+    document.getElementById('addTxBtn').addEventListener('click', () => this.openTxForm());
+
+    document.getElementById('filterBtn').addEventListener('click', () => {
+      document.getElementById('filterPanel').classList.toggle('hidden');
+    });
+    document.getElementById('applyFilter').addEventListener('click', () => this.renderTransactions());
+    document.getElementById('clearFilter').addEventListener('click', () => {
+      ['fFrom','fTo','fType','fCategory','fPerson','fPayment','fMin','fMax']
+        .forEach(id => document.getElementById(id).value = '');
+      this.renderTransactions();
+    });
+
+    document.getElementById('addPersonBtn').addEventListener('click', () => Ledger.openPersonForm());
+    document.getElementById('ledgerSearch').addEventListener('input',
+      debounce(e => Ledger.render(e.target.value), 250));
+
+    document.querySelectorAll('[data-rep]').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('[data-rep]').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        Reports.render(t.dataset.rep);
+      });
+    });
+    document.getElementById('exportReport').addEventListener('click', () => this.openExportReportMenu());
+
+    document.getElementById('calcBtn').addEventListener('click', () => this.openCalculator());
+    document.getElementById('notesBtn').addEventListener('click', () => this.openDailyNotes());
+    document.getElementById('reminderBtn').addEventListener('click', () => this.openReminders());
+    document.getElementById('recurringBtn').addEventListener('click', () => this.openRecurring());
+    document.getElementById('templateBtn').addEventListener('click', () => this.openTemplates());
+    document.getElementById('categoryBtn').addEventListener('click', () => this.openCategoryManager());
+
+    document.getElementById('backupBtn').addEventListener('click', () => this.doBackup());
+    document.getElementById('restoreBtn').addEventListener('click', () => this.doRestore());
+    document.getElementById('exportCsvBtn').addEventListener('click', () => this.exportAll('csv'));
+    document.getElementById('exportXlsxBtn').addEventListener('click', () => this.exportAll('xlsx'));
+    document.getElementById('exportPdfBtn').addEventListener('click', () => this.exportAll('pdf'));
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    document.getElementById('setCurrency').addEventListener('change', async e => {
+      await Settings.set('currency', e.target.value);
+      this.refreshAll();
+    });
+    document.getElementById('setDateFormat').addEventListener('change', async e => {
+      await Settings.set('dateFormat', e.target.value);
+      this.refreshAll();
+    });
+    document.getElementById('setThemeColor').addEventListener('change', async e => {
+      await Settings.set('themeColor', e.target.value);
+      Settings.applyTheme();
+    });
+    document.getElementById('setupLock').addEventListener('click', () => {
+      this._setupMode = true;
+      document.getElementById('lockMessage').textContent = 'Enter a new 4-digit PIN';
+      this.showLock();
+      document.getElementById('app').classList.remove('hidden');
+    });
+    document.getElementById('setAutoLock').addEventListener('change', async e => {
+      await Settings.set('autoLock', Number(e.target.value) || 0);
+      toast('Auto-lock updated', 'success');
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      confirmDialog('This will PERMANENTLY delete all data. Continue?', async () => {
+        await db.reset();
+        toast('Database reset. Reloading...', 'info');
+        setTimeout(() => location.reload(), 1200);
+      });
+    });
+
+    document.querySelectorAll('.pin-keypad button').forEach(b => {
+      b.addEventListener('click', () => this.handlePinKey(b.dataset.k));
+    });
+    document.getElementById('skipLockBtn').addEventListener('click', () => {
+      if (!Settings.hasLock()) {
+        document.getElementById('lockScreen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+      } else {
+        toast('PIN is required', 'error');
+      }
+    });
+
+    document.getElementById('setCurrency').value = Settings.get('currency');
+    document.getElementById('setDateFormat').value = Settings.get('dateFormat');
+    document.getElementById('setThemeColor').value = Settings.get('themeColor');
+    document.getElementById('setAutoLock').value = Settings.get('autoLock');
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'n' || e.key === 'N') this.openTxForm();
+      if (e.key === '/') { e.preventDefault(); document.getElementById('searchBtn').click(); }
+      if (e.key === 'Escape') closeAllModals();
+    });
+
+    Reports.render('daily');
+  },
+
+  navigate(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === page));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (page === 'dashboard') this.refreshDashboard();
+    if (page === 'transactions') this.renderTransactions();
+    if (page === 'ledger') Ledger.render(document.getElementById('ledgerSearch').value);
+    if (page === 'reports') {
+      const active = document.querySelector('[data-rep].active');
+      Reports.render(active ? active.dataset.rep : 'daily');
+      Charts.renderProfit('chartProfit');
+    }
+  },
+
+  async refreshDashboard() {
+    const txs = await db.getAll(STORES.transactions);
+    const today = todayISO();
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    let totalInc = 0, totalExp = 0, todayNet = 0, todayCount = 0;
+    let monthInc = 0, monthExp = 0, outstanding = 0;
+    txs.forEach(t => {
+      const a = Number(t.amount)||0;
+      const sign = txSign(t.type);
+      if (sign > 0) totalInc += a;
+      if (sign < 0) totalExp += a;
+      if (t.date === today) { todayNet += sign*a; todayCount++; }
+      if (t.date && t.date.startsWith(monthKey)) {
+        if (sign > 0) monthInc += a;
+        if (sign < 0) monthExp += a;
+      }
+      if (t.type === 'Loan Given') outstanding += a;
+      if (t.type === 'Loan Taken') outstanding -= a;
+    });
+    const balance = totalInc - totalExp;
+    const profit = monthInc - monthExp;
+    document.getElementById('statBalance').textContent = money(balance);
+    document.getElementById('statIncome').textContent  = money(totalInc);
+    document.getElementById('statExpense').textContent = money(totalExp);
+    document.getElementById('statToday').textContent   = money(todayNet);
+    document.getElementById('statTodaySub').textContent = `${todayCount} transactions`;
+    document.getElementById('statMonthIn').textContent = money(monthInc);
+    document.getElementById('statMonthOut').textContent= money(monthExp);
+    document.getElementById('statProfit').textContent  = money(profit);
+    document.getElementById('statProfit').style.color  = profit >= 0 ? 'var(--income)' : 'var(--expense)';
+    document.getElementById('statLoan').textContent    = money(outstanding);
+
+    const recent = [...txs].sort((a,b) => (b.date+(b.time||'')).localeCompare(a.date+(a.time||''))).slice(0,5);
+    const list = document.getElementById('recentTxList');
+    list.innerHTML = recent.length ? recent.map(t => this.txItemHtml(t)).join('')
+      : '<p class="muted" style="text-align:center;padding:20px">No transactions yet</p>';
+    this.attachTxItemListeners(list);
+
+    await Charts.renderOverview('chartOverview');
+    await Charts.renderTopExpenses('chartTopExp');
+    await Charts.renderCashflow('chartCashflow');
+  },
+
+  async renderTransactions(searchQ = '') {
+    const q = searchQ || document.getElementById('globalSearch')?.value || '';
+    let txs = await db.getAll(STORES.transactions);
+    const fFrom = document.getElementById('fFrom')?.value;
+    const fTo = document.getElementById('fTo')?.value;
+    const fType = document.getElementById('fType')?.value;
+    const fCat = document.getElementById('fCategory')?.value;
+    const fPer = document.getElementById('fPerson')?.value;
+    const fPay = document.getElementById('fPayment')?.value;
+    const fMin = parseFloat(document.getElementById('fMin')?.value);
+    const fMax = parseFloat(document.getElementById('fMax')?.value);
+    if (fFrom) txs = txs.filter(t => t.date >= fFrom);
+    if (fTo)   txs = txs.filter(t => t.date <= fTo);
+    if (fType) txs = txs.filter(t => t.type === fType);
+    if (fCat)  txs = txs.filter(t => t.category === fCat);
+    if (fPer)  txs = txs.filter(t => t.personId === fPer);
+    if (fPay)  txs = txs.filter(t => t.paymentMethod === fPay);
+    if (!isNaN(fMin)) txs = txs.filter(t => Number(t.amount) >= fMin);
+    if (!isNaN(fMax)) txs = txs.filter(t => Number(t.amount) <= fMax);
+    if (q) {
+      const ql = q.toLowerCase();
+      const persons = await db.getAll(STORES.persons);
+      const pMap = {}; persons.forEach(p => pMap[p.id] = p.name);
+      txs = txs.filter(t => {
+        return (t.category||'').toLowerCase().includes(ql) ||
+               (t.description||'').toLowerCase().includes(ql) ||
+               (t.personName||pMap[t.personId]||'').toLowerCase().includes(ql) ||
+               (t.phone||'').includes(ql) ||
+               (t.reference||'').toLowerCase().includes(ql) ||
+               String(t.amount).includes(ql) ||
+               (t.date||'').includes(ql);
+      });
+    }
+    this.populateFilterDropdowns();
+    txs.sort((a,b) => (b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
+    const list = document.getElementById('txList');
+    const empty = document.getElementById('txEmpty');
+    if (txs.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    list.innerHTML = txs.map(t => this.txItemHtml(t)).join('');
+    this.attachTxItemListeners(list);
+  },
+
+  async populateFilterDropdowns() {
+    const catSel = document.getElementById('fCategory');
+    const perSel = document.getElementById('fPerson');
+    const cats = await db.getAll(STORES.categories);
+    const persons = await db.getAll(STORES.persons);
+    const curCat = catSel.value, curPer = perSel.value;
+    catSel.innerHTML = '<option value="">All</option>' +
+      cats.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    perSel.innerHTML = '<option value="">All</option>' +
+      persons.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    catSel.value = curCat; perSel.value = curPer;
+  },
+
+  txItemHtml(t) {
+    const cls = txTypeClass(t.type);
+    const sign = txSign(t.type);
+    const signChar = sign > 0 ? '+' : sign < 0 ? '-' : '';
+    const subtitle = [t.category || t.type, t.personName || '', t.paymentMethod || ''].filter(Boolean).join(' • ');
+    return `
+      <div class="tx-item" data-id="${t.id}">
+        <div class="tx-icon ${cls}"><span class="material-icons-round">${txTypeIcon(t.type)}</span></div>
+        <div class="tx-body">
+          <div class="tx-title">${escapeHtml(t.description || t.category || t.type)}</div>
+          <div class="tx-sub">
+            <span>${fmtDateTime(t.date+'T'+(t.time||'00:00'))}</span>
+            <span>• ${escapeHtml(subtitle)}</span>
+          </div>
+        </div>
+        <div class="tx-amount ${cls}">${signChar}${money(t.amount)}</div>
+        <button class="tx-menu-btn" data-menu="${t.id}"><span class="material-icons-round">more_vert</span></button>
+      </div>`;
+  },
+
+  attachTxItemListeners(container) {
+    container.querySelectorAll('.tx-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('[data-menu]')) return;
+        this.openTxDetail(item.dataset.id);
+      });
+    });
+    container.querySelectorAll('[data-menu]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openTxMenu(btn.dataset.menu);
+      });
+    });
+  },
+
+  async openTxForm(prefill = {}) {
+    const cats = await db.getAll(STORES.categories);
+    const persons = await db.getAll(STORES.persons);
+    const templates = await db.getAll(STORES.templates);
+    const editing = !!prefill.id;
+    const t = editing ? await db.get(STORES.transactions, prefill.id) : {
+      id: null, type: prefill.type || 'Expense',
+      date: todayISO(), time: new Date().toTimeString().slice(0,5),
+      amount: '', category: '', personId: prefill.personId || '',
+      personName: '', phone: '', paymentMethod: 'Cash',
+      reference: '', description: '', notes: '', tags: []
+    };
+    const typeOptions = ['Income','Expense','Transfer','Loan Given','Loan Taken','Investment','Salary','Business','Other'];
+    const catOpts = (kind) => cats.filter(c => c.kind === kind)
+      .map(c => `<option value="${escapeHtml(c.name)}" ${t.category===c.name?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+    const personOpts = persons.map(p =>
+      `<option value="${p.id}" ${t.personId===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+    const tmplOpts = templates.length
+      ? `<div class="form-group"><label>Load Template</label>
+           <select id="tf_tmpl"><option value="">-- Choose --</option>
+           ${templates.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('')}
+           </select></div>` : '';
+    const body = `
+      <div class="type-tabs">
+        ${typeOptions.map(tp => `<button class="type-tab ${t.type===tp?'active':''}" data-tp="${tp}">${tp}</button>`).join('')}
+      </div>
+      ${tmplOpts}
+      <div class="form-row">
+        <div class="form-group"><label>Amount *</label><input type="number" id="tf_amount" value="${t.amount||''}" inputmode="decimal" placeholder="0.00" /></div>
+        <div class="form-group"><label>Category</label>
+          <select id="tf_category">
+            <option value="">-- None --</option>
+            <optgroup label="Income">${catOpts('income')}</optgroup>
+            <optgroup label="Expense">${catOpts('expense')}</optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Date *</label><input type="date" id="tf_date" value="${t.date}" /></div>
+        <div class="form-group"><label>Time</label><input type="time" id="tf_time" value="${t.time||''}" /></div>
+      </div>
+      <div class="form-group"><label>Person</label>
+        <select id="tf_person"><option value="">-- None --</option>${personOpts}</select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Payment Method</label>
+          <select id="tf_payment">
+            ${['Cash','UPI','Bank','Card','Cheque'].map(p =>
+              `<option ${t.paymentMethod===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Reference No.</label><input id="tf_ref" value="${escapeHtml(t.reference||'')}" /></div>
+      </div>
+      <div class="form-group"><label>Description</label><input id="tf_desc" value="${escapeHtml(t.description||'')}" placeholder="Short description" /></div>
+      <div class="form-group"><label>Notes</label><textarea id="tf_notes">${escapeHtml(t.notes||'')}</textarea></div>
+      <div class="form-group">
+        <label>Tags (comma separated)</label>
+        <input id="tf_tags" value="${escapeHtml((t.tags||[]).join(', '))}" placeholder="e.g. urgent, business" />
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <button class="btn btn-primary" id="tf_save">${editing ? 'Update' : 'Save'}</button>
+    `;
+    openModal(editing ? 'Edit Transaction' : 'New Transaction', body, footer);
+    document.getElementById('tf_category').value = t.category || '';
+    document.querySelectorAll('.type-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        t.type = btn.dataset.tp;
+      });
+    });
+    document.getElementById('tf_person').addEventListener('change', async e => {
+      const pid = e.target.value;
+      if (pid) { const p = await db.get(STORES.persons, pid); }
+    });
+    const tmplSel = document.getElementById('tf_tmpl');
+    if (tmplSel) {
+      tmplSel.addEventListener('change', async e => {
+        if (!e.target.value) return;
+        const tmpl = await db.get(STORES.templates, e.target.value);
+        if (!tmpl) return;
+        document.getElementById('tf_amount').value = tmpl.amount || '';
+        document.getElementById('tf_category').value = tmpl.category || '';
+        document.getElementById('tf_payment').value = tmpl.paymentMethod || 'Cash';
+        document.getElementById('tf_desc').value = tmpl.description || '';
+        document.querySelectorAll('.type-tab').forEach(b => b.classList.toggle('active', b.dataset.tp === tmpl.type));
+        t.type = tmpl.type;
+        toast('Template loaded', 'info');
+      });
+    }
+    document.getElementById('tf_save').addEventListener('click', async () => {
+      const amt = parseFloat(document.getElementById('tf_amount').value);
+      if (!amt || amt <= 0) { toast('Enter a valid amount', 'error'); return; }
+      const date = document.getElementById('tf_date').value;
+      if (!date) { toast('Date is required', 'error'); return; }
+      const personId = document.getElementById('tf_person').value;
+      let personName = '', phone = '';
+      if (personId) { const p = await db.get(STORES.persons, personId); if (p) { personName = p.name; phone = p.phone || ''; } }
+      const record = {
+        id: t.id || uid('t_'), type: t.type, amount: amt,
+        category: document.getElementById('tf_category').value,
+        date, time: document.getElementById('tf_time').value || '',
+        personId, personName, phone,
+        paymentMethod: document.getElementById('tf_payment').value,
+        reference: document.getElementById('tf_ref').value.trim(),
+        description: document.getElementById('tf_desc').value.trim(),
+        notes: document.getElementById('tf_notes').value.trim(),
+        tags: document.getElementById('tf_tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+        createdAt: t.createdAt || nowISO(), updatedAt: nowISO()
+      };
+      await db.put(STORES.transactions, record);
+      toast('Transaction saved', 'success');
+      closeAllModals();
+      this.refreshAll();
+    });
+  },
+
+  async openTxDetail(id) {
+    const t = await db.get(STORES.transactions, id);
+    if (!t) return;
+    const cls = txTypeClass(t.type);
+    const sign = txSign(t.type);
+    const body = `
+      <div style="text-align:center;padding:20px 0">
+        <div class="tx-icon ${cls}" style="width:64px;height:64px;font-size:28px;margin:0 auto;border-radius:18px">
+          <span class="material-icons-round">${txTypeIcon(t.type)}</span>
+        </div>
+        <div class="tx-amount ${cls}" style="font-size:28px;margin-top:10px">
+          ${sign>0?'+':sign<0?'-':''}${money(t.amount)}
+        </div>
+        <div class="muted" style="margin-top:4px">${escapeHtml(t.type)} ${t.category ? '• '+escapeHtml(t.category) : ''}</div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        <div><span class="muted">Date</span><div><strong>${fmtDate(t.date)}</strong></div></div>
+        <div><span class="muted">Time</span><div><strong>${t.time || '—'}</strong></div></div>
+        <div><span class="muted">Payment</span><div><strong>${escapeHtml(t.paymentMethod||'—')}</strong></div></div>
+        <div><span class="muted">Reference</span><div><strong>${escapeHtml(t.reference||'—')}</strong></div></div>
+        ${t.personName ? `<div style="grid-column:1/-1"><span class="muted">Person</span><div><strong>${escapeHtml(t.personName)}</strong>${t.phone?' • '+escapeHtml(t.phone):''}</div></div>`:''}
+        ${t.description ? `<div style="grid-column:1/-1"><span class="muted">Description</span><div>${escapeHtml(t.description)}</div></div>`:''}
+        ${t.notes ? `<div style="grid-column:1/-1"><span class="muted">Notes</span><div>${escapeHtml(t.notes)}</div></div>`:''}
+      </div>
+      ${(t.tags && t.tags.length) ? `<div class="chip-row" style="margin-top:10px">${t.tags.map(tg=>`<span class="chip">#${escapeHtml(tg)}</span>`).join('')}</div>`:''}
+    `;
+    const footer = `
+      <button class="btn btn-ghost" id="td_edit"><span class="material-icons-round">edit</span>Edit</button>
+      <button class="btn btn-ghost" id="td_dup"><span class="material-icons-round">copy_all</span>Dup</button>
+      <button class="btn btn-danger" id="td_del"><span class="material-icons-round">delete</span></button>
+    `;
+    openModal('Transaction', body, footer);
+    document.getElementById('td_edit').onclick = () => { closeAllModals(); this.openTxForm({ id }); };
+    document.getElementById('td_dup').onclick = async () => {
+      const copy = { ...t, id: null, createdAt: null, description: (t.description||'') + ' (copy)' };
+      await this.saveTxFromObject(copy);
+      toast('Duplicated', 'success');
+      closeAllModals();
+      this.refreshAll();
+    };
+    document.getElementById('td_del').onclick = () => {
+      confirmDialog('Delete this transaction?', async () => {
+        await db.delete(STORES.transactions, id);
+        this._lastDeleted = t;
+        toast('Deleted', 'info', { label: 'Undo', onClick: async () => {
+          await db.put(STORES.transactions, this._lastDeleted);
+          this.refreshAll();
+          toast('Restored', 'success');
+        }});
+        closeAllModals();
+        this.refreshAll();
+      });
+    };
+  },
+
+  async saveTxFromObject(t) {
+    t.id = uid('t_');
+    t.createdAt = nowISO();
+    t.updatedAt = nowISO();
+    await db.put(STORES.transactions, t);
+  },
+
+  openTxMenu(id) { this.openTxDetail(id); },
+
+  async exportAll(format) {
+    const txs = await db.getAll(STORES.transactions);
+    const persons = await db.getAll(STORES.persons);
+    if (!txs.length) { toast('No data to export', 'error'); return; }
+    if (format === 'csv') {
+      const head = 'ID,Date,Time,Type,Category,Amount,Person,Phone,Payment,Reference,Description,Notes,Tags\n';
+      const rows = txs.map(t =>
+        [t.id,t.date,t.time||'',t.type,t.category||'',t.amount,t.personName||'',t.phone||'',
+         t.paymentMethod||'',t.reference||'',t.description||'',t.notes||'',(t.tags||[]).join('|')]
+         .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')
+      ).join('\n');
+      downloadFile(`financepro_${todayISO()}.csv`, head + rows, 'text/csv');
+    }
+    else if (format === 'xlsx') {
+      const ws = XLSX.utils.json_to_sheet(txs.map(t => ({
+        Date: t.date, Time: t.time, Type: t.type, Category: t.category,
+        Amount: t.amount, Person: t.personName, Phone: t.phone,
+        Payment: t.paymentMethod, Reference: t.reference,
+        Description: t.description, Notes: t.notes, Tags: (t.tags||[]).join(', ')
+      })));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+      if (persons.length) {
+        const ps = XLSX.utils.json_to_sheet(persons);
+        XLSX.utils.book_append_sheet(wb, ps, 'Persons');
+      }
+      XLSX.writeFile(wb, `financepro_${todayISO()}.xlsx`);
+    }
+    else if (format === 'pdf') {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(16); doc.text('FinancePro Report', 14, 18);
+      doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.autoTable({
+        startY: 32,
+        head: [['Date','Type','Category','Person','Amount','Payment']],
+        body: txs.map(t => [t.date, t.type, t.category||'', t.personName||'', Number(t.amount).toFixed(2), t.paymentMethod||'']),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [99,102,241] }
+      });
+      doc.save(`financepro_${todayISO()}.pdf`);
+    }
+    toast('Exported', 'success');
+  },
+
+  async doBackup() {
+    const data = await db.backup();
+    downloadFile(`financepro_backup_${todayISO()}.json`, JSON.stringify(data, null, 2), 'application/json');
+    toast('Backup downloaded', 'success');
+  },
+
+  doRestore() {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.json,application/json';
+    input.onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        confirmDialog('This will REPLACE all current data. Continue?', async () => {
+          await db.restore(data);
+          toast('Restored successfully. Reloading...', 'success');
+          setTimeout(() => location.reload(), 1200);
+        });
+      } catch (err) { toast('Invalid backup file', 'error'); }
+    };
+    input.click();
+  },
+
+  openCalculator() {
+    const body = `
+      <div class="calc-display" id="calcDisplay">0</div>
+      <div class="calc-grid">
+        <button class="calc-btn op" data-c="C">C</button>
+        <button class="calc-btn op" data-c="(">(</button>
+        <button class="calc-btn op" data-c=")">)</button>
+        <button class="calc-btn op" data-c="/">÷</button>
+        <button class="calc-btn" data-c="7">7</button>
+        <button class="calc-btn" data-c="8">8</button>
+        <button class="calc-btn" data-c="9">9</button>
+        <button class="calc-btn op" data-c="*">×</button>
+        <button class="calc-btn" data-c="4">4</button>
+        <button class="calc-btn" data-c="5">5</button>
+        <button class="calc-btn" data-c="6">6</button>
+        <button class="calc-btn op" data-c="-">−</button>
+        <button class="calc-btn" data-c="1">1</button>
+        <button class="calc-btn" data-c="2">2</button>
+        <button class="calc-btn" data-c="3">3</button>
+        <button class="calc-btn op" data-c="+">+</button>
+        <button class="calc-btn" data-c="0" style="grid-column:span 2">0</button>
+        <button class="calc-btn" data-c=".">.</button>
+        <button class="calc-btn eq" data-c="=">=</button>
+      </div>
+    `;
+    openModal('Calculator', body);
+    let expr = '';
+    const disp = document.getElementById('calcDisplay');
+    document.querySelectorAll('.calc-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const c = b.dataset.c;
+        if (c === 'C') expr = '';
+        else if (c === '=') {
+          try { expr = String(Function('"use strict"; return (' + expr + ')')()); }
+          catch { expr = 'Error'; }
+        } else expr += c;
+        disp.textContent = expr || '0';
+      });
+    });
+  },
+
+  async openDailyNotes() {
+    const today = todayISO();
+    const all = await db.getAll(STORES.notes);
+    const body = `
+      <div class="form-group"><label>Date</label><input type="date" id="nd_date" value="${today}" /></div>
+      <div class="form-group"><label>Note</label><textarea id="nd_text" style="min-height:140px" placeholder="Write your thoughts..."></textarea></div>
+      <div id="nd_prev"><h3 style="margin-top:12px">Previous notes</h3></div>
+    `;
+    const footer = `<button class="btn btn-ghost" onclick="closeAllModals()">Close</button>
+                    <button class="btn btn-primary" id="nd_save">Save Note</button>`;
+    openModal('Daily Notes', body, footer);
+    const loadNote = async (d) => {
+      const n = all.find(x => x.date === d);
+      document.getElementById('nd_text').value = n ? n.text : '';
+    };
+    await loadNote(today);
+    document.getElementById('nd_date').addEventListener('change', e => loadNote(e.target.value));
+    document.getElementById('nd_save').onclick = async () => {
+      const d = document.getElementById('nd_date').value;
+      const text = document.getElementById('nd_text').value.trim();
+      if (!text) { toast('Note is empty', 'error'); return; }
+      await db.put(STORES.notes, { id: 'n_'+d, date: d, text, updatedAt: nowISO() });
+      toast('Note saved', 'success');
+    };
+    const prevDiv = document.getElementById('nd_prev');
+    const recent = [...all].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+    if (recent.length) {
+      prevDiv.innerHTML += recent.map(n =>
+        `<div style="background:var(--surface-2);padding:10px;border-radius:8px;margin-top:8px;font-size:13px">
+          <strong>${fmtDate(n.date)}</strong><br>${escapeHtml(n.text.slice(0,200))}${n.text.length>200?'...':''}
+        </div>`).join('');
+    }
+  },
+
+  async openReminders() {
+    const all = await db.getAll(STORES.reminders);
+    const body = `
+      <div class="form-row">
+        <div class="form-group"><label>Title</label><input id="rem_title" placeholder="Pay electricity bill" /></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="rem_date" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Amount (optional)</label><input type="number" id="rem_amt" /></div>
+        <div class="form-group"><label>Priority</label>
+          <select id="rem_pri"><option>Low</option><option selected>Normal</option><option>High</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="rem_add" style="margin-bottom:14px">+ Add Reminder</button>
+      <h3>Upcoming</h3>
+      <div id="rem_list"></div>
+    `;
+    openModal('Reminders', body, `<button class="btn btn-ghost" onclick="closeAllModals()">Close</button>`);
+    const renderList = async () => {
+      const all = await db.getAll(STORES.reminders);
+      all.sort((a,b) => a.date.localeCompare(b.date));
+      const html = all.length ? all.map(r => {
+        const overdue = r.date < todayISO();
+        return `<div class="tx-item" style="margin-top:6px">
+          <div class="tx-icon ${overdue?'expense':'loan'}"><span class="material-icons-round">notifications</span></div>
+          <div class="tx-body">
+            <div class="tx-title">${escapeHtml(r.title)}</div>
+            <div class="tx-sub"><span>${fmtDate(r.date)}</span>${r.amount?`<span>• ${money(r.amount)}</span>`:''}
+            <span>• ${r.priority}</span></div>
+          </div>
+          <button class="icon-btn" data-del="${r.id}"><span class="material-icons-round">delete</span></button>
+        </div>`;
+      }).join('') : '<p class="muted" style="text-align:center;padding:16px">No reminders</p>';
+      const l = document.getElementById('rem_list');
+      l.innerHTML = html;
+      l.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        await db.delete(STORES.reminders, b.dataset.del); renderList();
+      });
+    };
+    document.getElementById('rem_add').onclick = async () => {
+      const title = document.getElementById('rem_title').value.trim();
+      const date = document.getElementById('rem_date').value;
+      if (!title || !date) { toast('Title and date required', 'error'); return; }
+      await db.put(STORES.reminders, {
+        id: uid('r_'), title, date,
+        amount: parseFloat(document.getElementById('rem_amt').value) || 0,
+        priority: document.getElementById('rem_pri').value,
+        createdAt: nowISO()
+      });
+      document.getElementById('rem_title').value = '';
+      document.getElementById('rem_amt').value = '';
+      toast('Reminder added', 'success');
+      renderList();
+    };
+    renderList();
+  },
+
+  async openRecurring() {
+    const all = await db.getAll(STORES.recurring);
+    const body = `
+      <p class="muted" style="margin-bottom:12px">Set up recurring transactions that auto-create on schedule.</p>
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input id="rec_name" /></div>
+        <div class="form-group"><label>Amount</label><input type="number" id="rec_amt" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Type</label>
+          <select id="rec_type"><option>Income</option><option selected>Expense</option></select>
+        </div>
+        <div class="form-group"><label>Frequency</label>
+          <select id="rec_freq"><option>Daily</option><option selected>Monthly</option><option>Yearly</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Next Run Date</label><input type="date" id="rec_next" value="${todayISO()}" /></div>
+      <button class="btn btn-primary btn-block" id="rec_add">+ Add Recurring</button>
+      <div id="rec_list" style="margin-top:16px"></div>
+    `;
+    openModal('Recurring Transactions', body, `<button class="btn btn-ghost" onclick="closeAllModals()">Close</button>`);
+    const renderList = async () => {
+      const all = await db.getAll(STORES.recurring);
+      const l = document.getElementById('rec_list');
+      l.innerHTML = all.length ? all.map(r =>
+        `<div class="tx-item" style="margin-top:6px">
+          <div class="tx-icon ${txTypeClass(r.type)}"><span class="material-icons-round">repeat</span></div>
+          <div class="tx-body">
+            <div class="tx-title">${escapeHtml(r.name)}</div>
+            <div class="tx-sub"><span>${money(r.amount)}</span><span>• ${r.frequency}</span><span>• Next: ${fmtDate(r.nextDate)}</span></div>
+          </div>
+          <button class="icon-btn" data-run="${r.id}"><span class="material-icons-round">play_arrow</span></button>
+          <button class="icon-btn" data-del="${r.id}"><span class="material-icons-round">delete</span></button>
+        </div>`).join('') : '<p class="muted" style="text-align:center;padding:16px">No recurring items</p>';
+      l.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        await db.delete(STORES.recurring, b.dataset.del); renderList();
+      });
+      l.querySelectorAll('[data-run]').forEach(b => b.onclick = async () => {
+        const r = await db.get(STORES.recurring, b.dataset.run);
+        await db.put(STORES.transactions, {
+          id: uid('t_'), type: r.type, amount: r.amount, category: r.name,
+          date: todayISO(), time: new Date().toTimeString().slice(0,5),
+          paymentMethod: 'Cash', description: `Recurring: ${r.name}`,
+          tags: ['recurring'], createdAt: nowISO(), updatedAt: nowISO()
+        });
+        const nd = new Date(r.nextDate);
+        if (r.frequency === 'Daily') nd.setDate(nd.getDate()+1);
+        else if (r.frequency === 'Monthly') nd.setMonth(nd.getMonth()+1);
+        else if (r.frequency === 'Yearly') nd.setFullYear(nd.getFullYear()+1);
+        r.nextDate = nd.toISOString().slice(0,10);
+        await db.put(STORES.recurring, r);
+        toast('Transaction created', 'success');
+        renderList();
+        this.refreshAll();
+      });
+    };
+    document.getElementById('rec_add').onclick = async () => {
+      const name = document.getElementById('rec_name').value.trim();
+      const amt = parseFloat(document.getElementById('rec_amt').value);
+      if (!name || !amt) { toast('Name and amount required', 'error'); return; }
+      await db.put(STORES.recurring, {
+        id: uid('rec_'), name, amount: amt,
+        type: document.getElementById('rec_type').value,
+        frequency: document.getElementById('rec_freq').value,
+        nextDate: document.getElementById('rec_next').value,
+        createdAt: nowISO()
+      });
+      document.getElementById('rec_name').value = '';
+      document.getElementById('rec_amt').value = '';
+      toast('Recurring added', 'success');
+      renderList();
+    };
+    renderList();
+  },
+
+  async openTemplates() {
+    const all = await db.getAll(STORES.templates);
+    const body = `
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input id="tmpl_name" /></div>
+        <div class="form-group"><label>Amount</label><input type="number" id="tmpl_amt" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Type</label>
+          <select id="tmpl_type"><option>Expense</option><option>Income</option></select>
+        </div>
+        <div class="form-group"><label>Category</label><input id="tmpl_cat" /></div>
+      </div>
+      <div class="form-group"><label>Payment</label>
+        <select id="tmpl_pay"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option><option>Cheque</option></select>
+      </div>
+      <div class="form-group"><label>Description</label><input id="tmpl_desc" /></div>
+      <button class="btn btn-primary btn-block" id="tmpl_add">+ Save Template</button>
+      <div id="tmpl_list" style="margin-top:16px"></div>
+    `;
+    openModal('Transaction Templates', body, `<button class="btn btn-ghost" onclick="closeAllModals()">Close</button>`);
+    const renderList = async () => {
+      const all = await db.getAll(STORES.templates);
+      const l = document.getElementById('tmpl_list');
+      l.innerHTML = all.length ? all.map(t =>
+        `<div class="tx-item" style="margin-top:6px">
+          <div class="tx-icon ${txTypeClass(t.type)}"><span class="material-icons-round">snippet_folder</span></div>
+          <div class="tx-body">
+            <div class="tx-title">${escapeHtml(t.name)}</div>
+            <div class="tx-sub"><span>${money(t.amount)}</span><span>• ${escapeHtml(t.category||'')}</span></div>
+          </div>
+          <button class="icon-btn" data-del="${t.id}"><span class="material-icons-round">delete</span></button>
+        </div>`).join('') : '<p class="muted" style="text-align:center;padding:16px">No templates yet</p>';
+      l.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        await db.delete(STORES.templates, b.dataset.del); renderList();
+      });
+    };
+    document.getElementById('tmpl_add').onclick = async () => {
+      const name = document.getElementById('tmpl_name').value.trim();
+      const amt = parseFloat(document.getElementById('tmpl_amt').value);
+      if (!name || !amt) { toast('Name and amount required', 'error'); return; }
+      await db.put(STORES.templates, {
+        id: uid('tmpl_'), name, amount: amt,
+        type: document.getElementById('tmpl_type').value,
+        category: document.getElementById('tmpl_cat').value.trim(),
+        paymentMethod: document.getElementById('tmpl_pay').value,
+        description: document.getElementById('tmpl_desc').value.trim(),
+        createdAt: nowISO()
+      });
+      document.getElementById('tmpl_name').value = '';
+      document.getElementById('tmpl_amt').value = '';
+      toast('Template saved', 'success');
+      renderList();
+    };
+    renderList();
+  },
+
+  async openCategoryManager() {
+    const cats = await db.getAll(STORES.categories);
+    const body = `
+      <div class="form-row">
+        <div class="form-group"><label>New Category Name</label><input id="cat_name" /></div>
+        <div class="form-group"><label>Kind</label>
+          <select id="cat_kind"><option value="income">Income</option><option value="expense" selected>Expense</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="cat_add">+ Add Category</button>
+      <h3 style="margin-top:16px">Income Categories</h3>
+      <div id="cat_inc"></div>
+      <h3 style="margin-top:12px">Expense Categories</h3>
+      <div id="cat_exp"></div>
+    `;
+    openModal('Manage Categories', body, `<button class="btn btn-ghost" onclick="closeAllModals()">Close</button>`);
+    const renderList = async () => {
+      const cats = await db.getAll(STORES.categories);
+      const inc = cats.filter(c => c.kind === 'income');
+      const exp = cats.filter(c => c.kind === 'expense');
+      const html = (arr) => arr.map(c =>
+        `<div class="tx-item" style="margin-top:6px">
+          <div class="tx-body"><div class="tx-title">${escapeHtml(c.name)}</div>
+            <div class="tx-sub">${c.builtIn?'Built-in':'Custom'}</div></div>
+          ${!c.builtIn ? `<button class="icon-btn" data-del="${c.id}"><span class="material-icons-round">delete</span></button>` : ''}
+        </div>`).join('');
+      document.getElementById('cat_inc').innerHTML = html(inc);
+      document.getElementById('cat_exp').innerHTML = html(exp);
+      document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        await db.delete(STORES.categories, b.dataset.del); renderList();
+      });
+    };
+    document.getElementById('cat_add').onclick = async () => {
+      const name = document.getElementById('cat_name').value.trim();
+      if (!name) { toast('Name required', 'error'); return; }
+      await db.put(STORES.categories, {
+        id: uid('c_'), name, kind: document.getElementById('cat_kind').value, builtIn: false
+      });
+      document.getElementById('cat_name').value = '';
+      toast('Category added', 'success');
+      renderList();
+    };
+    renderList();
+  },
+
+  openExportReportMenu() {
+    const body = `
+      <button class="btn btn-ghost btn-block" data-fmt="csv" style="margin-bottom:8px">📊 Export as CSV</button>
+      <button class="btn btn-ghost btn-block" data-fmt="xlsx" style="margin-bottom:8px">📈 Export as Excel</button>
+      <button class="btn btn-ghost btn-block" data-fmt="pdf" style="margin-bottom:8px">📄 Export as PDF</button>
+      <button class="btn btn-ghost btn-block" data-fmt="json" style="margin-bottom:8px">🗂️ Export as JSON</button>
+      <button class="btn btn-ghost btn-block" data-fmt="print">🖨️ Print Report</button>
+    `;
+    openModal('Export Report', body);
+    document.querySelectorAll('[data-fmt]').forEach(b => {
+      b.onclick = () => { Reports.exportCurrent(b.dataset.fmt); closeAllModals(); };
+    });
+  },
+
+  async refreshAll() {
+    await this.refreshDashboard();
+    await this.renderTransactions();
+    await Ledger.render(document.getElementById('ledgerSearch').value);
+  }
+};
+
+/* ============ BOOT ============ */
+window.addEventListener('load', () => App.init());
+</script>
+</body>
+</html>
